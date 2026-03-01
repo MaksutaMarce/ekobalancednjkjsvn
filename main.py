@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, List, Any, Union
 
 import aiohttp
-import psutil
 from PyPDF2 import PdfReader
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
@@ -856,45 +855,6 @@ def unfreeze_all_subscriptions():
             conn.close()
 
 
-# System monitoring functions
-def get_system_stats() -> Dict[str, Any]:
-    """Получить статистику системы"""
-    try:
-        # CPU usage
-        cpu_percent = psutil.cpu_percent(interval=1)
-
-        # Memory usage
-        memory = psutil.virtual_memory()
-        memory_total_gb = round(memory.total / (1024 ** 3), 2)
-        memory_used_gb = round(memory.used / (1024 ** 3), 2)
-        memory_percent = memory.percent
-
-        # Disk usage
-        disk = psutil.disk_usage('/')
-        disk_total_gb = round(disk.total / (1024 ** 3), 2)
-        disk_used_gb = round(disk.used / (1024 ** 3), 2)
-        disk_percent = disk.percent
-
-        # System uptime
-        uptime_seconds = psutil.boot_time()
-        uptime = datetime.now() - datetime.fromtimestamp(uptime_seconds)
-        uptime_str = str(uptime).split('.')[0]  # Remove microseconds
-
-        return {
-            'cpu_percent': cpu_percent,
-            'memory_total_gb': memory_total_gb,
-            'memory_used_gb': memory_used_gb,
-            'memory_percent': memory_percent,
-            'disk_total_gb': disk_total_gb,
-            'disk_used_gb': disk_used_gb,
-            'disk_percent': disk_percent,
-            'uptime': uptime_str
-        }
-    except Exception as e:
-        logger.error(f"Ошибка при получении статистики системы: {e}")
-        return {}
-
-
 # Helper function to split long messages
 def split_long_message(text: str, max_length: int = MAX_MESSAGE_LENGTH) -> List[str]:
     """Разделить длинное сообщение на части по максимальной длине"""
@@ -1373,8 +1333,7 @@ async def cmd_help(message: Message):
 
         "🔧 <b>Технические команды:</b>\n"
         "/maintenance [on/off] [причина] - Управление режимом техработ\n"
-        "/debug_maintenance - Отладочная информация по техработам\n"
-        "/server_stats - Статистика сервера\n\n"
+        "/debug_maintenance - Отладочная информация по техработам\n\n"
 
         "ℹ️ <b>Общие команды:</b>\n"
         "/myid - Показать свой ID\n"
@@ -2345,29 +2304,6 @@ async def cmd_maintenance(message: Message):
 
     else:
         await message.answer("❌ Используйте: /maintenance on [причина] или /maintenance off")
-
-
-@dp.message(Command("server_stats"))
-async def cmd_server_stats(message: Message):
-    """Получить статистику сервера"""
-    if not is_manager(message.from_user.id):
-        await message.answer("❌ Команда доступна только администратору")
-        return
-
-    stats = get_system_stats()
-    if not stats:
-        await message.answer("❌ Не удалось получить статистику сервера")
-        return
-
-    text = (
-        "📊 Статистика сервера:\n\n"
-        f"🖥️ CPU: {stats['cpu_percent']}%\n"
-        f"💾 Память: {stats['memory_used_gb']}GB / {stats['memory_total_gb']}GB ({stats['memory_percent']}%)\n"
-        f"💿 Диск: {stats['disk_used_gb']}GB / {stats['disk_total_gb']}GB ({stats['disk_percent']}%)\n"
-        f"⏰ Аптайм: {stats['uptime']}"
-    )
-
-    await message.answer(text)
 
 
 @dp.message(Command("managers"))
